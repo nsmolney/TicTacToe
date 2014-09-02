@@ -1,0 +1,365 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css3.css"/>
+		<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+		<script type="text/javascript">
+
+		//Global Variables
+		var debug = false;  //debug mode
+		var hardAI = true;
+
+
+		var painted; //array for which squares are taken
+		var content; //value (X or O) in each square
+		var winningCombinations; //array of the combination of squares taken by one player which will trigger a win
+		var turn = 0; //for keeping track of whose turn it is
+		var squaresFilled = 0; // for keeping track of how many squares have already been taken.  
+		
+
+		var scale =1; //for changing size of game - not fully implemented
+
+		//variables to have the squares fit inside the grid.  
+		var marginX = 5;
+		var marginY = 7; 
+		var offsetX = 15; 
+		var offsetY = 10;
+
+		var humanPlayers = 0;  // keep track of how many humans are playing
+		var humanPlayerTurn = false; // whether it is the humans turn or not.  
+		var humanSide; //the symbol for the one human player, if that option is chosen
+		var aiSide; //the symbol for the AI player
+		var mostValuableSquares; //array for order of most valuable squares to least
+		var gameover = false; //flag for if game is over, needed for AI 
+
+		//Instanciate Arrays and set the board
+		window.onload=function(){
+			
+			painted = new Array();
+			content = new Array();
+			winningCombinations = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+
+
+			for(var l = 0; l <= 8; l++){
+				painted[l] = false;
+				content[l]='';
+				var square = "div"+(l+1);
+
+				var e = document.getElementById(square);
+				e.style.position = "absolute";
+				e.style.width = 87*scale+"px";
+				e.style.height = 87*scale+"px";
+				e.style.left= offsetX+(87+marginX)*scale*(l%3)+"px";
+				e.style.top = offsetY+(87+marginY)*scale*parseInt(l/3)+"px";
+			}
+
+			//prompt for how many players
+			setTimeout(function(){showMessage("players");}, 1000);
+			
+		}
+
+		//differentiaite a human move from a computer one
+		function humanClick(divNumber){
+
+			if ((humanPlayers<2 && humanPlayerTurn)||humanPlayers==2)
+				divClicked(divNumber);
+		}
+
+		//Game methods
+		function divClicked(divNumber){
+
+			//figure out which square was clicked on.  
+			var thediv = "div"+divNumber;
+			var c = document.getElementById(thediv);
+
+			//double check that square wasn't already taken
+			if(painted[divNumber-1] ==false){
+				//depending on which turn it is it will be an X or an O
+				if(turn%2==0){
+					//it's an X
+
+					var img = document.createElement("IMG");
+					img.src="X.png";
+					img.style.position ="relative";
+					img.style.top ="29px";
+					c.appendChild(img);
+
+
+					content[divNumber-1] = 'X';
+				}
+
+				else{
+					//it's an O
+					var img = document.createElement("IMG");
+					img.src="O.png";
+					img.style.position ="relative";
+					img.style.top ="16px";
+					c.appendChild(img);
+
+					content[divNumber-1] = 'O';
+				}
+				//trigger animation
+				c.className = c.className + " tileUpdated";
+
+				//increment the number of turns taken, mark the square as taken, increment the number of squares that are taken, and check for a winner
+				turn++;
+				painted[divNumber-1] = true;
+				squaresFilled++;
+				checkForWinners(content[divNumber-1]);
+
+				//if there are no more open squares the game is over
+				if(squaresFilled==9){
+					gameover = true;
+					var element = document.getElementById("message");
+					element.innerHTML = "THE GAME IS OVER!";
+					setTimeout(function(){showMessage("restart");}, 1000);
+				}
+
+				if(humanPlayers<2&&!gameover){
+					humanPlayerTurn = !humanPlayerTurn;
+					if (!humanPlayerTurn) setTimeout(function(){AI();}, 2000);
+				}
+			
+			}
+			else{
+
+				showMessage("taken");
+
+			}
+
+
+			if(debug)console.log("squaresFilled: "+squaresFilled);
+
+		}
+
+		//allows the displaying of several kinds of messages
+		function showMessage(message){
+
+			//show overlay and box
+			document.getElementById("greyOverlay").style.display = 'block';
+			document.getElementById("messageBox").style.display = 'block';
+
+			//hide all buttons that might have previously been on 
+			document.getElementById("okButton").style.display = 'none';
+			document.getElementById("playerButtons").style.display= 'none';
+			document.getElementById("playAgainButton").style.display = 'none';
+
+
+			var element = document.getElementById("message");
+			if (message == "ok"){
+				document.getElementById("okButton").style.display = 'block';
+			} else if (message == "taken"){
+				element.innerHTML = "Square already taken";
+				document.getElementById("messageBox").style.display = 'block';
+				document.getElementById("okButton").style.display = 'block';
+			} else if (message == "players"){
+				element.innerHTML = "How many human players?";
+				document.getElementById("playerButtons").style.display= 'block';
+			} else if (message == "restart"){
+				document.getElementById("playAgainButton").style.display = 'block';
+			} 
+		}
+
+		function checkForWinners(symbol){
+			//go through each of the winning combinatations and see if any exist, if so the game is over and one of the players won
+			if (debug) console.log("checking for winner");
+			for(var a = 0; a < winningCombinations.length; a++){
+				if(content[winningCombinations[a][0]]==symbol&&content[winningCombinations[a][1]]==	symbol&&content[winningCombinations[a][2]]==symbol){
+					gameover = true;
+					//set the win message 
+					var element = document.getElementById("message");
+					element.innerHTML = symbol+ " WON!";
+					setTimeout(function(){showMessage("restart");}, 1000);
+				}
+			}
+
+		}
+
+
+		function setPlayers(i){
+			//set number of players
+			humanPlayers = i;
+
+			//hide the player option box 
+
+
+			//if 2 players exit to game board, if it's 1 player pick a symbol for them and tell them which one
+			if (i==2){
+				// 2 humans
+				document.getElementById("messageBox").style.display = 'none';
+				document.getElementById("greyOverlay").style.display = 'none';
+			
+
+
+			}else{
+				// 1 human
+
+				//instanciate most valuable squares
+				mostValuableSquares = [4,0,2,6,8,1,3,5,7];
+
+				//pick a symbol for the human randomly
+				if (Math.random()>.5){
+					humanSide = "X";
+					aiSide = "O";
+				}else{
+					humanSide = "O";
+					aiSide = "X";
+				}
+
+
+				//set whether it will be the human turn.  
+				if (humanSide=="X") humanPlayerTurn =true;
+				else {
+					//if not human turn then have the AI randomly choose a corner or the center to start from
+
+					setTimeout(
+						function(){
+							var startMove = Math.floor(Math.random()*5)+1;
+							if(debug)console.log("starting move is "+startMove);
+							switch(startMove) {
+							case 1:
+							    divClicked(1);
+							    break;
+							case 2:
+							    divClicked(3);
+							    break;
+							case 3:
+								divClicked(5);
+								break;
+							case 4:
+								divClicked(7);
+								break;
+							case 5:
+								divClicked(9);	
+								break;
+							}
+
+						}, 1000);
+				}
+				
+
+				//show them which one they are
+
+				var element = document.getElementById("message");
+				element.innerHTML = "You are " + humanSide;
+				showMessage("ok");
+			}
+		}
+
+		function AI(){
+			var move = -1;
+			//See if AI can win
+			if (debug) console.log("AI checking for win");
+			for(var a = 0; a < winningCombinations.length; a++){
+				if(content[winningCombinations[a][0]]==aiSide&&content[winningCombinations[a][1]]==aiSide&&painted[winningCombinations[a][2]]==false){
+					move = winningCombinations[a][2];
+					break;
+				}
+				else if(content[winningCombinations[a][0]]==aiSide&&content[winningCombinations[a][2]]==aiSide&&painted[winningCombinations[a][1]]==false){
+					move = winningCombinations[a][1];
+					break;
+				}
+				else if (content[winningCombinations[a][1]]==aiSide&&content[winningCombinations[a][2]]==aiSide&&painted[winningCombinations[a][0]]==false){
+					move = winningCombinations[a][0];
+					break;
+				}
+			}
+			// if AI hasn't found a winning move, check to see if AI needs to block
+			if(move<0){
+				if (debug) console.log("AI checking for block");
+				for(var a = 0; a < winningCombinations.length; a++){
+					if(content[winningCombinations[a][0]]==humanSide&&content[winningCombinations[a][1]]==humanSide&&painted[winningCombinations[a][2]]==false){
+						move = winningCombinations[a][2];
+						break;
+					}
+					else if(content[winningCombinations[a][0]]==humanSide&&content[winningCombinations[a][2]]==humanSide&&painted[winningCombinations[a][1]]==false){
+						move = winningCombinations[a][1];
+						break;
+					}
+					else if (content[winningCombinations[a][1]]==humanSide&&content[winningCombinations[a][2]]==humanSide&&painted[winningCombinations[a][0]]==false){
+						move = winningCombinations[a][0];
+						break;
+					}
+				}
+
+			}
+
+			//special case where corner is actually less valuable than a side
+			if(hardAI){
+				if(move<0){
+					if (debug) console.log("AI special case");
+					if (squaresFilled==3 &&((content[0]==humanSide&&content[8]==humanSide&&content[4]==aiSide)||(content[2]==humanSide&&content[6]==humanSide&&content[4]==aiSide))){
+						move = 1;
+					}
+				}
+			}
+
+
+
+			//if AI still hasn't found a move, choose most valuable square left
+			if(move<0){
+				if (debug) console.log("AI looking for best available square");
+				for(var a = 0; a < mostValuableSquares.length; a++){
+					if(painted[mostValuableSquares[a]]==false){
+						move = mostValuableSquares[a];
+						break;
+					} 
+				}
+
+			}
+
+			if (debug) console.log("AI move is " + move);
+			divClicked(move+1);
+		}
+
+		function okButton(){
+			//functionality to clear a message that just needs acknowledgement
+			document.getElementById("greyOverlay").style.display = 'none';
+			document.getElementById("messageBox").style.display = 'none';
+			document.getElementById("okButton").style.display = 'none';
+		}
+
+
+		</script>
+	</head>
+	<body>
+		<div id ="box">
+			<h1>TIC - TAC - TOE!</h1>
+			<div id= "board"> <img src="board.png" />
+				<div id = "div1" class="tile" onclick="humanClick(1)"></div>
+				<div id = "div2"  class="tile" onclick="humanClick(2)"></div>
+				<div id = "div3"  class="tile" onclick="humanClick(3)"></div>
+				<br/>
+				<div id = "div4"  class="tile" onclick="humanClick(4)"></div>
+				<div id = "div5"  class="tile" onclick="humanClick(5)"></div>
+				<div id = "div6"  class="tile" onclick="humanClick(6)"></div>
+				<br/>
+				<div id = "div7"  class="tile" onclick="humanClick(7)"></div>
+				<div id = "div8"  class="tile" onclick="humanClick(8)"></div>
+				<div id = "div9"  class="tile" onclick="humanClick(9)"></div>
+
+			</div>
+			<div id = "messageBox" class="gameBox">
+				<div id ="message">Message</div>
+				<br/>
+				<br/>
+				<button type="button" id="playAgainButton" class="gameButton" onclick="location.reload(true)" name="" value="">PLAY AGAIN?</button>
+				<button type="button" id="okButton" class="gameButton" onclick="okButton()" name="" value="">Ok</button>
+				<div id="playerButtons">
+					<button type="button" id="onePlayerButton" class="gameButton" onclick="setPlayers(1)" name="" value="">1 player</button>
+					<button type="button" id="twoPlayerButton" class="gameButton" onclick="setPlayers(2)" name="" value="">2 players</button>
+				</div>
+			</div>
+		</div>
+		
+		<div id ="greyOverlay">
+
+		</div>
+
+
+		
+	</body>
+</html>
+
+

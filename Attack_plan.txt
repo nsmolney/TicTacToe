@@ -1,0 +1,25 @@
+Attack plan -
+	1. Find existing tic tac toe code - 10 min
+		a. completed - http://www.dreamincode.net/forums/topic/247361-simple-tic-tac-toe-using-html5-css3-and-javascript/
+	2. Find graphics - 10 min
+		b. ripped from google play store game - https://play.google.com/store/apps/details?id=com.tictactoefree
+	3. Modify code to be what you want
+		a0. make use of classes in css (10 min)
+		a1. make use of arrays and for loops more (10 min)
+		a1a. replace alerts with text prompts (20min)
+		a1b. start option to scale board (10min)
+		b. be more graphical (90 min)
+
+
+	4. 2 player vs. ai? 4h
+		a. Basic AI - 2 hours
+		a. harder AI option - currently a toggle global variable - could be another set of buttons
+		b. when AI is first have it randomly select center or one of the corners
+		c. randomly choose which symbol the human is
+
+
+	5. Mess around with look and feel
+
+		z. include favicon for the hell of it
+
+
